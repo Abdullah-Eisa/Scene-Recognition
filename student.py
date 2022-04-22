@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib
 from skimage.io import imread
-from skimage.color import rgb2grey
+#from skimage.color import rgb2grey
 from skimage.feature import hog
 from skimage.transform import resize
 from scipy.spatial.distance import cdist
@@ -39,8 +39,21 @@ def get_tiny_images(image_paths):
     """
 
     # TODO: Implement this function!
+    N = len(image_paths)
+    print(f'length is {N}')
+    output = np.zeros((N,256))
+    for i in range(len(image_paths)):
+        img = imread(image_paths[i])
+        #print(f'type of image is : {type(img)}')
+        resized_img = resize(img, (16,16),
+                       anti_aliasing=True)
+        # converting to 1d array and storing in output array
+        output[i,:] = resize(resized_img,(1,256))
 
-    return np.array([])
+        #NORMALIZATOIN TO BE ADDED HERE
+
+
+    return output
 
 
 def build_vocabulary(image_paths, vocab_size):
