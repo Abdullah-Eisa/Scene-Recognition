@@ -142,7 +142,7 @@ def build_vocabulary(image_paths, vocab_size):
     for path in image_paths:
         img = np.asarray(Image.open(path),dtype='float32')
 #         frames, descriptors = dsift(img, step=[5,5], fast=True)
-        frames, descriptors = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
+        descriptors = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
         bag_of_features.append(descriptors)
     bag_of_features = np.concatenate(bag_of_features, axis=0).astype('float32')
     #pdb.set_trace()
