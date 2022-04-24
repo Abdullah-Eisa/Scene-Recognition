@@ -298,25 +298,40 @@ def nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats)
         scipy.spatial.distance.cdist, np.argsort, scipy.stats.mode
     """
 
-    k = 1
-    m = test_image_feats.shape[0]
-    output = np.empty(m, dtype = "string")
 
-    categories = np.unique(train_labels)
+    """ ====================================================================
+        k = 1
+        m = test_image_feats.shape[0]
+        output = np.empty(m, dtype = "S")
 
-    # Gets the distance between each test image feature and each train image feature
-    # e.g., cdist
-    distances = cdist(test_image_feats, train_image_feats, 'euclidean')
+        categories = np.unique(train_labels)
 
-    for each in distances:
-        votes = []
-        index = np.argsort(each)
-        votes.append(train_labels[index[each]])
-        max_votes = 0
-        for cat in categories:
-            if votes.count(cat) > max_votes:
-                result = cat
-        output.append(result)
+        # Gets the distance between each test image feature and each train image feature
+        # e.g., cdist
+        distances = cdist(test_image_feats, train_image_feats, 'euclidean')
+
+        for each in distances:
+            votes = []
+            index = np.argsort(each)
+            votes.append(train_labels[index[each]])
+            max_votes = 0
+            for cat in categories:
+                if votes.count(cat) > max_votes:
+                    result = cat
+            output.append(result)
+
+    """
+#----------------------------------
+    test_predicts = []
+    for num in range(test_image_feats.shape[0]):
+        each_row = []
+        each = np.tile(test_image_feats[num],(train_image_feats.shape[0],1))
+        square_each = np.square(each - train_image_feats)
+        for sq in range(square_each.shape[0]):
+            each_row.append(np.sqrt(sum(square_each[sq])))
+        minimum = min(each_row)
+        minimum_ind = each_row.index(min(each_row))
+        test_predicts.append(train_labels[minimum_ind])
 
     # TODO:
     # 1) Find the k closest features to each test image feature in euclidean space
@@ -325,4 +340,5 @@ def nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats)
     # 3) Pick the most common label from the k
     # 4) Store that label in a list
 
-    return output
+    #return output
+    return test_predicts
