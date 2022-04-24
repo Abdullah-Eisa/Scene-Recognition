@@ -9,6 +9,7 @@ from scipy.spatial.distance import cdist
 from sklearn import preprocessing
 from sklearn.svm import LinearSVC
 from skimage.feature import hog
+from PIL import Image
 
 def get_tiny_images(image_paths):
     """
