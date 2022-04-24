@@ -10,6 +10,11 @@ from sklearn import preprocessing
 from sklearn.svm import LinearSVC
 from skimage.feature import hog
 from PIL import Image
+#from cyvlfeat.kmeans import kmeans
+from time import time
+
+#import sklearn.cluster
+from sklearn.cluster import KMeans
 
 def get_tiny_images(image_paths):
     """
@@ -140,17 +145,22 @@ def build_vocabulary(image_paths, vocab_size):
     #The Python Debugger
     #pdb.set_trace()
     
+
+
     for path in image_paths:
         img = np.asarray(Image.open(path),dtype='float32')
 #         frames, descriptors = dsift(img, step=[5,5], fast=True)
-        descriptors = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
+       # descriptors = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
+        descriptors=hog(img, orientations=9, pixels_per_cell=(8, 8),cells_per_block=(3, 3), visualize=False, channel_axis=None)
         bag_of_features.append(descriptors)
     bag_of_features = np.concatenate(bag_of_features, axis=0).astype('float32')
     #pdb.set_trace()
     
     print("Compute vocab")
     start_time = time()
-    vocab = kmeans(bag_of_features, vocab_size, initialization="PLUSPLUS")        
+    #vocab = kmeans(bag_of_features, vocab_size, initialization="PLUSPLUS")
+    vocab = KMeans(n_clusters=vocab_size, random_state=0).fit(bag_of_features)    
+
     end_time = time()
     print("It takes ", (start_time - end_time), " to compute vocab.")
     
@@ -197,9 +207,10 @@ def get_bags_of_words(image_paths):
     for index,image in image_paths:
         img = imread(image)
         img_resized = resize(img,(120,60))
-        feat_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3),
-         block_norm='L2-Hys', visualize=False, transform_sqrt=False,
-         feature_vector=True, multichannel=None, *, channel_axis=None)
+ #       feat_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3),
+     #    block_norm='L2-Hys', visualize=False, transform_sqrt=False,
+      #   feature_vector=True, multichannel=None, *, channel_axis=None)
+        feat_vector =hog(img, orientations=9, pixels_per_cell=(8, 8),cells_per_block=(3, 3), visualize=False, channel_axis=None)
 
         feat_vec_resized = resize(-1,2*2*9)
 
@@ -212,7 +223,7 @@ def get_bags_of_words(image_paths):
 
         hist[pos] += count
         hist = hist / np.linalg.norm(hist)
-        histograms[i] = hist
+        histograms[index] = hist
     return histograms
 
 
@@ -297,14 +308,14 @@ def nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats)
     # e.g., cdist
     distances = cdist(test_image_feats, train_image_feats, 'euclidean')
 
-    for each in distance:
+    for each in distances:
         votes = []
         index = np.argsort(each)
-        votes.append(train_labels[index[i]])
+        votes.append(train_labels[index[each]])
         max_votes = 0
         for cat in categories:
             if votes.count(cat) > max_votes:
-                result = item
+                result = cat
         output.append(result)
 
     # TODO:
