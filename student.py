@@ -136,6 +136,8 @@ def build_vocabulary(image_paths, vocab_size):
     may also find success setting the "tol" argument (see documentation for
     details)
     """
+
+    """
     #fd, hog_image=hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
     # TODO: Implement this functio  n!
     bag_of_features = []
@@ -180,9 +182,51 @@ def build_vocabulary(image_paths, vocab_size):
     print("It takes ", (start_time - end_time), " to compute vocab.")
     
     return np.array([vocab.cluster_centers_])
+"""
+    All_features_vectors = []
+    for img in image_paths:
+        image = imread(img)
+        image = resize(image, (128, 64))
+        features_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False,
+                              feature_vector=True, multichannel=None)
+        features_vector = features_vector.reshape(-1, 2*2*9)
+        All_features_vectors.append(features_vector)
+
+    All_features_vectors = np.vstack(All_features_vectors)
+    print(All_features_vectors.shape)
+    kmeans_clf = KMeans(n_clusters=vocab_size, max_iter=100).fit(All_features_vectors)
+    vocab = kmeans_clf.cluster_centers_
+
+    return vocab
 
 
 def get_bags_of_words(image_paths):
+
+
+    vocab = np.load('vocab.npy')
+    print('Loaded vocab from file.')
+
+    vocab_len = vocab.shape[0]
+    histograms = np.zeros((len(image_paths), vocab_len))
+    vocab=vocab.resize((200,81))
+    print("vocab shape ---->",np.shape(vocab))
+
+    for i, img in enumerate(image_paths):
+        image = imread(img)
+        image = resize(image, (120, 60))
+        features_vector = hog(image, orientations=9, pixels_per_cell=(5,5), cells_per_block=(3,3), visualize=False,
+                                feature_vector=True, multichannel=None)
+        features_vector = features_vector.reshape(-1, 9* 9)
+        histo = np.zeros(vocab_len)
+        distances = cdist(features_vector, vocab)
+        closest_vocab = np.argsort(distances, axis=1)[:, 0]
+        index, count = np.unique(closest_vocab, return_counts=True)
+        histo[index] += count
+        histo = histo / np.linalg.norm(histo)
+        histograms[i] = histo
+
+    return histograms
+
     """
     This function should take in a list of image paths and calculate a bag of
     words histogram for each image, then return those histograms in an array.
@@ -212,25 +256,28 @@ def get_bags_of_words(image_paths):
                          np.linalg.norm, skimage.feature.hog
     """
 
+"""
+    bag_of_features = []
     vocab = np.load('vocab.npy')
+    vocab=vocab.resize((200,81))
     print('Loaded vocab from file.')
+    print("vocab shape ---->",np.shape(vocab))
+    histograms = np.zeros((len(image_paths),int(np.shape(vocab))))
 
-    # TODO: Implement this function!
-
-    histograms = np.zeros((len(image_paths),vocab.shape[0]))
-
-    for index,image in image_paths:
+    for index,image in enumerate(image_paths):
         img = imread(image)
         img_resized = resize(img,(120,60))
+        
  #       feat_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3),
      #    block_norm='L2-Hys', visualize=False, transform_sqrt=False,
       #   feature_vector=True, multichannel=None, *, channel_axis=None)
         feat_vector =hog(img, orientations=9, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
 
-        feat_vec_resized = resize(-1,2*2*9)
+        #print("feat_vector shape ---->",np.shape(feat_vector))
+        feat_vector=feat_vector.reshape((-1,9*9))
 
-        dist = cdist(feat_vec_resized,vocab)
-        hist = np.zeros(vocab.shape[0])
+        dist = cdist(feat_vector,vocab)
+        hist = np.zeros(int(np.shape(vocab)))
 
         nearest_vocab = np.argsort(dist,axis =1)[:,0]
 
@@ -239,7 +286,22 @@ def get_bags_of_words(image_paths):
         hist[pos] += count
         hist = hist / np.linalg.norm(hist)
         histograms[index] = hist
-    return histograms
+    
+        #bag_of_features.append(feat_vector)
+        #feat_vec_resized=feat_vector.reshape((-1,9*9))
+        #feat_vec_resized = resize(-1,2*2*9)
+
+    #bag_of_features = np.concatenate(bag_of_features, axis=0).astype('int')
+    #bag_of_features=bag_of_features.reshape((-1,9*9))
+    #vocab = KMeans(n_clusters=vocab_size, random_state=0).fit(bag_of_features)    
+#-----------------------------------------------------------------------------------------------------------------------------------
+
+    return histograms """
+
+
+
+
+
 
 
 def svm_classify(train_image_feats, train_labels, test_image_feats):
