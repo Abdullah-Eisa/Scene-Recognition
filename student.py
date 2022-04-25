@@ -151,9 +151,24 @@ def build_vocabulary(image_paths, vocab_size):
         img = np.asarray(Image.open(path),dtype='float32')
 #         frames, descriptors = dsift(img, step=[5,5], fast=True)
        # descriptors = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
-        descriptors=hog(img, orientations=9, pixels_per_cell=(8, 8),cells_per_block=(3, 3), visualize=False, channel_axis=None)
+        descriptors=hog(img, orientations=9, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
+       # descriptors=hog(img, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
+        #print("descriptors shape ---->",np.shape(descriptors))
+        #descriptors=descriptors.reshape((-1,9*9))
+        #print("descriptors shape ---->",np.shape(descriptors))
+
         bag_of_features.append(descriptors)
-    bag_of_features = np.concatenate(bag_of_features, axis=0).astype('float32')
+    print("bag_of_features shape ---->",np.shape(bag_of_features))
+    #print("bag_of_features----->",bag_of_features[1,:2])
+    #mean_data = np.array(mean_data)
+
+    
+    #print("bag_of_features[0,:] len----->",len(bag_of_features[0,:]))
+    bag_of_features = np.concatenate(bag_of_features, axis=0).astype('int')
+    bag_of_features=bag_of_features.reshape((-1,9*9))
+    #print("bag_of_features shape ---->",bag_of_features.reshape(bag_of_features.shape[0],2).shape)
+    
+    #bag_of_features=bag_of_features.reshape(1500,-1)
     #pdb.set_trace()
     
     print("Compute vocab")
@@ -164,7 +179,7 @@ def build_vocabulary(image_paths, vocab_size):
     end_time = time()
     print("It takes ", (start_time - end_time), " to compute vocab.")
     
-    return np.array([vocab])
+    return np.array([vocab.cluster_centers_])
 
 
 def get_bags_of_words(image_paths):
@@ -210,7 +225,7 @@ def get_bags_of_words(image_paths):
  #       feat_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3),
      #    block_norm='L2-Hys', visualize=False, transform_sqrt=False,
       #   feature_vector=True, multichannel=None, *, channel_axis=None)
-        feat_vector =hog(img, orientations=9, pixels_per_cell=(8, 8),cells_per_block=(3, 3), visualize=False, channel_axis=None)
+        feat_vector =hog(img, orientations=9, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
 
         feat_vec_resized = resize(-1,2*2*9)
 
