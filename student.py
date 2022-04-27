@@ -1,20 +1,14 @@
 import numpy as np
 import matplotlib
 from skimage.io import imread
-#from skimage.color import rgb2grey
+from skimage.color import rgb2grey
 from skimage.feature import hog
 from skimage.transform import resize
 from scipy.spatial.distance import cdist
-
-from sklearn import preprocessing
-from sklearn.svm import LinearSVC
-from skimage.feature import hog
-from PIL import Image
-#from cyvlfeat.kmeans import kmeans
-from time import time
-
-#import sklearn.cluster
+from scipy import stats
 from sklearn.cluster import KMeans
+from sklearn.svm import LinearSVC
+from time import time
 
 def get_tiny_images(image_paths):
     """
@@ -47,27 +41,25 @@ def get_tiny_images(image_paths):
                          skimage.io.imread, np.reshape
     """
 
-    # TODO: Implement this function!
-    N = len(image_paths)
-    print(f'length is {N}')
-    output = np.zeros((N,256))
-    for i in range(len(image_paths)):
-        img = imread(image_paths[i])
-        #print(f'type of image is : {type(img)}')
-        resized_img = resize(img, (16,16),
-                       anti_aliasing=True)
-        img_norm = (resized_img - np.mean(resized_img)) / np.std(resized_img)
+    output = []
+    
+    for img in image_paths:
+        image = imread(img, as_gray=True)
+        # resizing the image
+        image = resize(image, (16, 16))
+        # normalizing the image
+        image = (image-np.mean(image)) / np.std(image)
+        # making it one dimension
+        image = image.flatten()
+        # adding the image to our output list
+        output.append(image)
 
-        # converting to 1d array and storing in output array
-        output[i,:] = resize(img_norm,(1,256))
-
-        #NORMALIZATOIN TO BE ADDED HERE
-
+    output = np.asarray(output)
 
     return output
 
-
 def build_vocabulary(image_paths, vocab_size):
+
     """
     This function should sample HOG descriptors from the training images,
     cluster them with kmeans, and then return the cluster centers.
@@ -136,96 +128,28 @@ def build_vocabulary(image_paths, vocab_size):
     may also find success setting the "tol" argument (see documentation for
     details)
     """
-
-    """
-    #fd, hog_image=hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
-    # TODO: Implement this functio  n!
-    bag_of_features = []
-    
-    print("Extract HOG features")
-    
-    #The Python Debugger
-    #pdb.set_trace()
-    
-
-
-    for path in image_paths:
-        img = np.asarray(Image.open(path),dtype='float32')
-#         frames, descriptors = dsift(img, step=[5,5], fast=True)
-       # descriptors = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3), block_norm='L2-Hys', visualize=False, transform_sqrt=False, feature_vector=True, multichannel=None, *, channel_axis=None)
-        descriptors=hog(img, orientations=9, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
-       # descriptors=hog(img, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
-        #print("descriptors shape ---->",np.shape(descriptors))
-        #descriptors=descriptors.reshape((-1,9*9))
-        #print("descriptors shape ---->",np.shape(descriptors))
-
-        bag_of_features.append(descriptors)
-    print("bag_of_features shape ---->",np.shape(bag_of_features))
-    #print("bag_of_features----->",bag_of_features[1,:2])
-    #mean_data = np.array(mean_data)
-
-    
-    #print("bag_of_features[0,:] len----->",len(bag_of_features[0,:]))
-    bag_of_features = np.concatenate(bag_of_features, axis=0).astype('int')
-    bag_of_features=bag_of_features.reshape((-1,9*9))
-    #print("bag_of_features shape ---->",bag_of_features.reshape(bag_of_features.shape[0],2).shape)
-    
-    #bag_of_features=bag_of_features.reshape(1500,-1)
-    #pdb.set_trace()
-    
-    print("Compute vocab")
-    start_time = time()
-    #vocab = kmeans(bag_of_features, vocab_size, initialization="PLUSPLUS")
-    vocab = KMeans(n_clusters=vocab_size, random_state=0).fit(bag_of_features)    
-
-    end_time = time()
-    print("It takes ", (start_time - end_time), " to compute vocab.")
-    
-    return np.array([vocab.cluster_centers_])
-"""
     All_features_vectors = []
     for img in image_paths:
         image = imread(img)
-        image = resize(image, (128, 64))
-        features_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False,
+        image = resize(image, (140, 80))
+        features_vector = hog(image, orientations=9, pixels_per_cell=(8,8), cells_per_block=(3,3), visualize=False,
                               feature_vector=True, multichannel=None)
-        features_vector = features_vector.reshape(-1, 2*2*9)
+        features_vector = features_vector.reshape(-1, 9*9)
         All_features_vectors.append(features_vector)
 
-    All_features_vectors = np.vstack(All_features_vectors)
+    All_features_vectors = np.concatenate(All_features_vectors, axis=0)
+
     print(All_features_vectors.shape)
+    start_time = time()
     kmeans_clf = KMeans(n_clusters=vocab_size, max_iter=100).fit(All_features_vectors)
     vocab = kmeans_clf.cluster_centers_
 
+    end_time = time()
+    print("It takes ", (end_time-start_time ), " seconds to compute vocab.")
+
     return vocab
 
-
 def get_bags_of_words(image_paths):
-
-
-    vocab = np.load('vocab.npy')
-    print('Loaded vocab from file.')
-
-    vocab_len = vocab.shape[0]
-    histograms = np.zeros((len(image_paths), vocab_len))
-    vocab=vocab.resize((200,81))
-    print("vocab shape ---->",np.shape(vocab))
-
-    for i, img in enumerate(image_paths):
-        image = imread(img)
-        image = resize(image, (120, 60))
-        features_vector = hog(image, orientations=9, pixels_per_cell=(5,5), cells_per_block=(3,3), visualize=False,
-                                feature_vector=True, multichannel=None)
-        features_vector = features_vector.reshape(-1, 9* 9)
-        histo = np.zeros(vocab_len)
-        distances = cdist(features_vector, vocab)
-        closest_vocab = np.argsort(distances, axis=1)[:, 0]
-        index, count = np.unique(closest_vocab, return_counts=True)
-        histo[index] += count
-        histo = histo / np.linalg.norm(histo)
-        histograms[i] = histo
-
-    return histograms
 
     """
     This function should take in a list of image paths and calculate a bag of
@@ -255,56 +179,46 @@ def get_bags_of_words(image_paths):
     Suggested functions: scipy.spatial.distance.cdist, np.argsort,
                          np.linalg.norm, skimage.feature.hog
     """
-
-"""
-    bag_of_features = []
     vocab = np.load('vocab.npy')
-    vocab=vocab.resize((200,81))
     print('Loaded vocab from file.')
-    print("vocab shape ---->",np.shape(vocab))
-    histograms = np.zeros((len(image_paths),int(np.shape(vocab))))
 
-    for index,image in enumerate(image_paths):
-        img = imread(image)
-        img_resized = resize(img,(120,60))
+    vocab_len = vocab.shape[0]
+    # the vocab file returned from  build vocab 
+    histograms = np.zeros((len(image_paths), vocab_len))
+
+    for i , img in enumerate(image_paths):
+        image = imread(img)
+        # changing the pixel 
+        image = resize(image, (140, 80))
+        # use the histogram of grad (HOG ) function given above
+        # use the same parameters used before
+        feat_vec = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3,3), visualize=False,
+                              feature_vector=True, multichannel=None)
         
- #       feat_vector = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3),
-     #    block_norm='L2-Hys', visualize=False, transform_sqrt=False,
-      #   feature_vector=True, multichannel=None, *, channel_axis=None)
-        feat_vector =hog(img, orientations=9, pixels_per_cell=(5,5),cells_per_block=(3, 3), visualize=False)
+        # CHANGE THESE PARAMETERS 
+        feat_vec = feat_vec.reshape(-1, 9*9)
+        # making the feat vec one dimension
+        hist = np.zeros(vocab_len)
+        distances = cdist(feat_vec, vocab)
+        # calculating the disatnce between features and clusters
+        closest_vocab = np.argsort(distances, axis=1)[:, 0] 
+        # sorting by distance
+        '''
+        nearest_ voclab = np.argsort(distances)
 
-        #print("feat_vector shape ---->",np.shape(feat_vector))
-        feat_vector=feat_vector.reshape((-1,9*9))
-
-        dist = cdist(feat_vector,vocab)
-        hist = np.zeros(int(np.shape(vocab)))
-
-        nearest_vocab = np.argsort(dist,axis =1)[:,0]
-
-        pos,count = np.unique(nearest_vocab,return_counts = True)
-
-        hist[pos] += count
+        # an error shows here   [ SOLVED]
+        '''
+        index, count= np.unique(closest_vocab, return_counts=True)
+        # i , count = np.unique ( nrearest_vocab) 
+        hist[index]+=count
         hist = hist / np.linalg.norm(hist)
-        histograms[index] = hist
-    
-        #bag_of_features.append(feat_vector)
-        #feat_vec_resized=feat_vector.reshape((-1,9*9))
-        #feat_vec_resized = resize(-1,2*2*9)
+        histograms[i]= hist
 
-    #bag_of_features = np.concatenate(bag_of_features, axis=0).astype('int')
-    #bag_of_features=bag_of_features.reshape((-1,9*9))
-    #vocab = KMeans(n_clusters=vocab_size, random_state=0).fit(bag_of_features)    
-#-----------------------------------------------------------------------------------------------------------------------------------
-
-    return histograms """
-
-
-
-
-
+    return histograms
 
 
 def svm_classify(train_image_feats, train_labels, test_image_feats):
+
     """
     This function will predict a category for every test image by training
     15 many-versus-one linear SVM classifiers on the training data, then
@@ -326,17 +240,19 @@ def svm_classify(train_image_feats, train_labels, test_image_feats):
     class. With the right arguments, you can get a 15-class SVM as described
     above in just one call! Be sure to read the documentation carefully.
     """
-    # TODO: Implement this function!
 
-    SVC = LinearSVC(C=700.0, class_weight=None, dual=True, fit_intercept=True,intercept_scaling=1, loss='squared_hinge', max_iter= 2000, multi_class='ovr', penalty='l2', random_state=0, tol= 1e-4,verbose=0)
-    SVC.fit(train_image_feats, train_labels)
-    
-    pred_test_label = SVC.predict(test_image_feats)
-    
-    return np.array([pred_test_label])
+    clf = LinearSVC(random_state=0, tol=1e-5)
+    clf.fit(train_image_feats, train_labels)
+    predictions = clf.predict(test_image_feats)
+
+    return predictions
+
+
+
 
 
 def nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats):
+
     """
     This function will predict the category for every test image by finding
     the training image with most similar features. You will complete the given
@@ -375,47 +291,26 @@ def nearest_neighbor_classify(train_image_feats, train_labels, test_image_feats)
         scipy.spatial.distance.cdist, np.argsort, scipy.stats.mode
     """
 
+    categories = np.unique(train_labels)
+    
+    output = []
+    dist = cdist(test_image_feats, train_image_feats, 'euclidean')
 
-    """ ====================================================================
-        k = 1
-        m = test_image_feats.shape[0]
-        output = np.empty(m, dtype = "S")
+    for d in dist:
+        # looping through distances
+        categ = [] # All Categories 
+        index = np.argsort(d)  # sorting Decendingly
 
-        categories = np.unique(train_labels)
+        for i in range(1):
+            categ.append(train_labels[index[i]])
 
-        # Gets the distance between each test image feature and each train image feature
-        # e.g., cdist
-        distances = cdist(test_image_feats, train_image_feats, 'euclidean')
+        qty = 0 
+        # calculating the count of each category
+        for each in categories:
 
-        for each in distances:
-            votes = []
-            index = np.argsort(each)
-            votes.append(train_labels[index[each]])
-            max_votes = 0
-            for cat in categories:
-                if votes.count(cat) > max_votes:
-                    result = cat
-            output.append(result)
+            if categ.count(each) > qty:
+                final_cat = each  # the most votes
+        # adding to output
+        output.append(final_cat)
 
-    """
-#----------------------------------
-    test_predicts = []
-    for num in range(test_image_feats.shape[0]):
-        each_row = []
-        each = np.tile(test_image_feats[num],(train_image_feats.shape[0],1))
-        square_each = np.square(each - train_image_feats)
-        for sq in range(square_each.shape[0]):
-            each_row.append(np.sqrt(sum(square_each[sq])))
-        minimum = min(each_row)
-        minimum_ind = each_row.index(min(each_row))
-        test_predicts.append(train_labels[minimum_ind])
-
-    # TODO:
-    # 1) Find the k closest features to each test image feature in euclidean space
-
-    # 2) Determine the labels of those k features
-    # 3) Pick the most common label from the k
-    # 4) Store that label in a list
-
-    #return output
-    return test_predicts
+    return output
